@@ -6,10 +6,13 @@
 
 #include "triangles.h"
 #include "vector.h"
+#include"list.h"
 
 
 void handler(int ch, Vector *v)
 {
+   if(v==NULL)
+      return;
    Vector direction = {0,0};
 
    if(ch == KEY_UP)
@@ -25,6 +28,31 @@ void handler(int ch, Vector *v)
 }
 
 
+struct Entity{
+   Vector position;
+   int color;
+};
+struct Entity *new_entity(int x,int y,int color){
+   struct Entity *e = malloc(sizeof(struct Entity));
+   e->position.x=x;
+   e->position.y=y;
+   e->color = color;
+   return e;
+}
+void print_entities(struct leaf *entities,struct leaf *actual){
+   struct leaf *tmp = entities;
+   while(tmp!=NULL){
+      const struct Entity *e = tmp->data;
+      if(tmp==actual)
+         print_empty_triangle(e->position, 5, 12, 1);
+      else
+         print_empty_triangle(e->position, 5, 12, e->color);
+      tmp = tmp->next;
+   }
+}
+bool check_collision(Vector v1,Vector size1,Vector v2,Vector size2){
+   
+}
 int main()
 {
    // на след занятии сделать наводку 
@@ -41,28 +69,37 @@ int main()
    init_pair(3, COLOR_BLUE, COLOR_BLUE);
    init_pair(4, COLOR_YELLOW, COLOR_BLUE);
 
-   Vector p1 = {10,10};
-   Vector p2 = {30,30};
-   Vector *actual = &p1;
 
+   int start_color = 2;
+   struct leaf *entities = NULL;
+
+   struct leaf *actual = NULL;
+
+   // если нажата клавища g - удалить актуальный элемент 103 remove_leaf_ptr
+   // 
    while (1)
    {
       int ch = getch();
-      if (ch == 10)
+      if (ch == 10)//enter
       {
-         if (actual == &p1)
-            actual = &p2;
+         struct Entity *e = new_entity(10,10,start_color);
+         start_color++;
+         actual=entities = preappend_leaf(entities,e);
+      }else if(ch==32){//space 
+         if(actual->next==NULL)
+            actual=entities;
          else
-            actual = &p1;
+            actual=actual->next;
+      }
+      if(actual!=NULL){
+         struct Entity *e = actual->data;
+         handler(ch, &e->position);
+         mvprintw(0,0,"%f %f  %d",e->position.x,e->position.y,ch);
       }
 
-      handler(ch, actual);
-      clear();
-      mvprintw(0,0, "%f %f", p1.x, p1.y);
-
-      print_empty_triangle(p1, 5, 12, 4);
-      print_empty_triangle(p2, 5, 12, 2);
+      print_entities(entities,actual);
       refresh();
+      clear();
       napms(100);
    }
    

@@ -10,22 +10,18 @@
 
 
 
-struct leaf *append_leaf(struct leaf* last,Vector pos,Vector dir)
+struct leaf *append_leaf(struct leaf* last,void *data)
 {
    if(last == NULL)
    {
       last = malloc(sizeof(struct leaf));
-      last->start = pos;
-      last->actual = pos;
-      last->vec = dir;
+      last->data=data;
       last->next = NULL;
       return last;
    }
 
    struct leaf *new_leaf = malloc(sizeof(struct leaf));
-   new_leaf->start=pos;
-   new_leaf->actual=pos;
-   new_leaf->vec=dir;
+   new_leaf->data = data;
 
    new_leaf->next = NULL;
    last->next = new_leaf;
@@ -33,37 +29,21 @@ struct leaf *append_leaf(struct leaf* last,Vector pos,Vector dir)
    return new_leaf;
 }
 
-struct leaf *preappend_leaf(struct leaf* head, Vector pos,Vector dir)
+struct leaf *preappend_leaf(struct leaf* head, void *data)
 {
    if(head == NULL)
    {
       head = malloc(sizeof(struct leaf));
-      head->start = pos;
-      head->actual = pos;
-      head->vec = dir;
+      head->data=data;
       head->next = NULL; head->prev = NULL;
       return head;
    }
 
    struct leaf* new_head = malloc(sizeof(struct leaf));
-   new_head->start=pos;
-   new_head->actual=pos;
-   new_head->vec=dir;
+   new_head->data = data;
    new_head->next = head;new_head->prev = NULL;
    head->prev = new_head;
    return new_head;
-}
-
-void print_list(struct leaf *head)
-{
-   struct leaf *tmp = head;
-   int n = 0;
-
-   while(tmp != NULL)
-   {
-      printf("%d {%f,%f}\n", ++n, tmp->actual.x, tmp->actual.y);
-      tmp = tmp->next;
-   }
 }
 int get_distance(struct leaf *head, struct leaf *last,const struct leaf *tmp)
 {
