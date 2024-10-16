@@ -2,7 +2,7 @@
 #include <ncurses.h>
 
 #include "vector.h"
-#include "triangles.h"
+#include "rectangles.h"
 
 void print_rectangle_ws(Vector pos, int height, int width, char symbol, int color)
 {  
@@ -18,7 +18,7 @@ void print_rectangle_ws(Vector pos, int height, int width, char symbol, int colo
    attroff(COLOR_PAIR(color));
 }
 
-void print_empty_triangle(Vector pos, int height, int width, int color)
+void print_empty_rectangle(Vector pos, int height, int width, int color)
 {
 	attron(COLOR_PAIR(color));
 

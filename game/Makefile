@@ -1,5 +1,5 @@
 CC = gcc
-FILES = game.c list.c vector.c triangles.c
+FILES = game.c list.c vector.c rectangles.c
 
 game_run: game
 	./game

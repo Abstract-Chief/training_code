@@ -5,9 +5,8 @@
 #include <unistd.h>
 #include <fcntl.h>
 
-#include"list.h"
+#include "list.h"
 #include "vector.h"
-
 
 
 struct leaf *append_leaf(struct leaf* last,void *data)
@@ -45,6 +44,7 @@ struct leaf *preappend_leaf(struct leaf* head, void *data)
    head->prev = new_head;
    return new_head;
 }
+
 int get_distance(struct leaf *head, struct leaf *last,const struct leaf *tmp)
 {
 	
@@ -64,6 +64,7 @@ int get_distance(struct leaf *head, struct leaf *last,const struct leaf *tmp)
 	}
 	return -1;
 }
+
 struct leaf* remove_leaf_ptr(struct leaf *head, struct leaf *finded)
 {
 	if (finded == NULL)
