@@ -25,13 +25,13 @@ void print_empty_rectangle(Vector pos, int height, int width, int color)
 	for (int i = 0; i < height; i++)
    {
       mvprintw(pos.y + i, pos.x, "%c", '+');
-      mvprintw(pos.y + i, pos.x + width, "%c", '+');
+      mvprintw(pos.y + i, pos.x + width-1, "%c", '+');
    }
    
-   for (int i = 0; i < width + 1; i++)
+   for (int i = 0; i < width; i++)
    {
       mvprintw(pos.y, pos.x + i, "%c", '+');
-      mvprintw(pos.y + height, pos.x + i, "%c", '+');
+      mvprintw(pos.y + height-1, pos.x + i, "%c", '+');
    }
       
    
