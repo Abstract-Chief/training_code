@@ -20,7 +20,7 @@ void print_rectangle_ws(Vector pos, int height, int width, char symbol, int colo
 
 void print_empty_rectangle(Vector pos, int height, int width, int color)
 {
-	attron(COLOR_PAIR(color));
+   attron(COLOR_PAIR(color));
 
 	for (int i = 0; i < height; i++)
    {

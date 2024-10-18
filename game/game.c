@@ -52,18 +52,21 @@ struct Entity *new_entity(const char *name,int x, int y,int mass, int color)
    e->color = color;
    return e;
 }
+void print_player(const struct Entity *e)
+{
+   Vector size = GetEntitySizes(e);
+   mvprintw(1,0,"Print Player x %f y %f  size %f size %f mass %d",e->position.x,e->position.y,size.x,size.y,e->mass);
+   print_empty_rectangle(e->position, size.y, size.x,e->color);
+}
 
-void print_entities(struct leaf *entities,const struct leaf *actual)
+void print_entities(struct leaf *entities)
 {
    struct leaf *tmp = entities;
    while (tmp != NULL)
    {
       const struct Entity *e = tmp->data;
       Vector size=GetEntitySizes(e);
-      if (tmp == actual)
-         print_empty_rectangle(e->position, size.y,size.x, 1);//Vector 
-      else
-         print_empty_rectangle(e->position, size.y,size.x, e->color);
+      print_empty_rectangle(e->position, size.y,size.x, e->color);
       tmp = tmp->next;
    }
 }
@@ -103,9 +106,15 @@ struct leaf* get_collision(struct leaf *entities, const struct Entity *e)
    return NULL;
 }
 
+int get_random(int from, int to)
+{
+   return rand() % (to - from + 1) + from;
+}
 
+//DZ создать функцию для генерации не колизионных противников gen_entity(struct leaf *entities,struct Entity player,char *name)
 int main()
 {
+   srand(time(NULL));
    initscr(); // включить нкурсес
    start_color(); // инициализировать цвета
    curs_set(0); // добавить / убрать курсор (1/0)
@@ -119,68 +128,33 @@ int main()
    init_pair(4, COLOR_YELLOW, COLOR_BLUE);
 
 
-   int start_color = 2;
+   int count_entities = 0;
    struct leaf *entities = NULL;
 
-   struct leaf *actual = NULL;
+   struct Entity player = {"Player", {5, 5}, 20,1};
 
+   mvprintw(0,0,"hello");
    while (1)
    {
       int ch = getch();
       if (ch == 10) //enter 
       {
          char *buf=malloc(15);
-         sprintf(buf, "Entity %d", start_color);
-         struct Entity *e = new_entity(buf,10, 10,10, start_color);
-         start_color++;
-         actual = entities = preappend_leaf(entities, e);
+         sprintf(buf, "Entity %d", count_entities++);
+         struct Entity *e = new_entity(buf,get_random(1,100), get_random(1,50),get_random(10,50), get_random(2,4));
+
+         entities = preappend_leaf(entities, e);
       }else if(ch == 113){
-         struct Entity *e = actual->data;
-         if(e->mass > 1)
-            e->mass--;
+         if(player.mass > 1)
+            player.mass--;
       }else if(ch == 101){
-         struct Entity *e = actual->data;
-         e->mass++;
-      }else if(ch == 32) // space - mark next entity as actual
-      {
-         if(actual->next == NULL)
-            actual = entities;
-         else
-            actual = actual->next;
+         player.mass++;
       }
-      else if (ch == 103) // g - delete actual entity and go to next as actual
-      {
-         if (actual != NULL && (actual->next!=NULL || actual->prev!=NULL))
-         {
-            if (actual->next == NULL)
-               actual = entities;
-            else
-               actual = actual->next;
-            entities = remove_leaf_ptr(entities, actual->prev);
-         }
-      }
-
-      if(actual != NULL)
-      {
-         struct Entity *e = actual->data;
-
-         handler(ch, &e->position);
-         struct leaf *collision = get_collision(entities, e);
-         if(collision != NULL)
-         {
-            struct Entity *enemy = collision->data;
-            mvprintw(1,0,"Collision %s %s",e->name,((struct Entity*)collision->data)->name);
-            if(enemy->mass>e->mass){
-               entities = remove_leaf_ptr(entities, actual);
-               actual = entities;
-            }else{
-               entities = remove_leaf_ptr(entities, collision);
-            }
-         }
-         mvprintw(0,0,"%s %f %f  %d",e->name,e->position.x, e->position.y, ch);
-      }
-
-      print_entities(entities, actual);
+      handler(ch, &player.position);
+      mvprintw(0,0,"Player x %f y %f mass %d",player.position.x,player.position.y,player.mass);
+      print_player(&player);
+      /*print_empty_rectangle(player.position, 1, 1, 1);*/
+      print_entities(entities);
       refresh();
       clear();
       napms(50);
