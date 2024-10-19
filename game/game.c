@@ -31,7 +31,7 @@ struct Entity
 {
    const char *name;
    Vector position;
-   int mass;
+   float mass;
    int color;
 };
 
@@ -58,7 +58,7 @@ struct Entity *new_entity(const char *name, int x, int y, int mass, int color)
 void print_player(const struct Entity *e)
 {
    Vector size = GetEntitySizes(e);
-   mvprintw(1,0,"Print Player x %f y %f  size %f size %f mass %d", e->position.x, e->position.y, size.x, size.y, e->mass);
+   mvprintw(1,0,"Print Player x %f y %f  size %f size %f mass %f", e->position.x, e->position.y, size.x, size.y, e->mass);
    print_empty_rectangle(e->position, size.y, size.x, e->color);
 }
 
@@ -118,9 +118,10 @@ int get_random(int from, int to)
    return rand() % (to - from + 1) + from;
 }
 
-void get_entity(struct leaf *entities, struct Entity player, char *name)
+void get_entity(struct leaf **entities, struct Entity player, char *name)
 {
    int x, y, mass, color;
+   int count_tries = 0;
 
    struct Entity *new_en;
    bool collision = false;
@@ -133,19 +134,26 @@ void get_entity(struct leaf *entities, struct Entity player, char *name)
       color = get_random(2, 4);
 
       new_en = new_entity(name, x, y, mass, color);
+      count_tries++;
+      
+      mvprintw(0,1, "%d, %d, %d, %d", x, y, mass, color);
+      refresh();
 
-      if ((check_entity_collision(&player, new_en) == true) || (get_collision(entities, new_en) != NULL))
+      if ((check_entity_collision(&player, new_en) == true) || (get_collision(*entities, new_en) != NULL))
          collision = true;
 
       if (collision)
          free(new_en);
+
+      if (count_tries > 10)
+         return;
    }
    while (collision);
 
-   entities = preappend_leaf(entities, new_en);
+   *entities = preappend_leaf(*entities, new_en);
 }
 
-struct Entity *move_entities(struct leaf *entities)
+void move_entities(struct leaf *entities)
 {
    struct leaf *tmp = entities;
 
@@ -160,6 +168,37 @@ struct Entity *move_entities(struct leaf *entities)
 
       tmp = tmp->next;
    }  
+}
+
+bool bigger_entity(struct Entity *e1, struct Entity *e2)
+{
+   /*if (e1->mass > e2->mass)
+      return true;
+   return false;*/
+   return (e1->mass > e2->mass);
+}
+
+void eat_entity(struct Entity *bigger, struct Entity *smaller)
+{
+   bigger->mass += (smaller->mass * 0.3);
+}
+
+void handle_entities(struct leaf **entities)
+{
+   struct leaf *tmp = *entities;
+   struct leaf *bumped; 
+
+   while (tmp != NULL)
+   {
+      bumped = get_collision(*entities, tmp->data);
+
+      if (bumped != NULL && bigger_entity(tmp->data, bumped->data))
+      {
+         eat_entity(tmp->data, bumped->data);
+         *entities = remove_leaf_ptr(*entities, bumped);
+      }
+      tmp = tmp->next;
+   } 
 }
 
 
@@ -194,10 +233,10 @@ int main()
       {
          char *buf = malloc(15);
          sprintf(buf, "Entity %d", count_entities++);
-         struct Entity *e = new_entity(buf, get_random(1, 100), get_random(1, 50),get_random(10, 50), get_random(2, 4));
-         //get_entity(entities, player, buf);
+         //struct Entity *e = new_entity(buf, get_random(1, 100), get_random(1, 50),get_random(10, 50), get_random(2, 4));
+         get_entity(&entities, player, buf);
 
-         entities = preappend_leaf(entities, e);
+         //entities = preappend_leaf(entities, e);
          //mvprintw(1, 0, "Generated Entity %d", count_entities);
       }
       else if(ch == 113) //q
@@ -213,7 +252,9 @@ int main()
       if (move_count++ % 4 == 0)
          move_entities(entities);
 
-      mvprintw(0,0, "Player x %f y %f mass %d", player.position.x, player.position.y, player.mass);
+      handle_entities(&entities);
+
+      mvprintw(0,0, "Player x %f y %f mass %f", player.position.x, player.position.y, player.mass);
 
       /*print_empty_rectangle(player.position, 1, 1, 1);*/
       print_player(&player);
