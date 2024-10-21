@@ -5,7 +5,7 @@ game_run: game
 	./game
 
 game: $(FILES)
-	$(CC) $^ -o $@ -lncurses -lm
+	$(CC) $^  -C -o $@ -lncurses -lm
 
 # $^ is the list of all dependencies
 # $@ is the target file

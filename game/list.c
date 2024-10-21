@@ -9,10 +9,6 @@
 #include "vector.h"
 
 
-<<<<<<< HEAD
-=======
-
->>>>>>> 54e20aa (void array and multi entity system added)
 struct leaf *append_leaf(struct leaf* last,void *data)
 {
    if(last == NULL)
@@ -48,10 +44,6 @@ struct leaf *preappend_leaf(struct leaf* head, void *data)
    head->prev = new_head;
    return new_head;
 }
-<<<<<<< HEAD
-
-=======
->>>>>>> 54e20aa (void array and multi entity system added)
 int get_distance(struct leaf *head, struct leaf *last,const struct leaf *tmp)
 {
 	

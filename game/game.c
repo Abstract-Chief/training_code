@@ -55,14 +55,15 @@ struct Entity *new_entity(const char *name, int x, int y, int mass, int color)
    return e;
 }
 
-void print_player(const struct Entity *e)
+void print_player(Vector center,const struct Entity *e)
 {
    Vector size = GetEntitySizes(e);
-   mvprintw(1,0,"Print Player x %f y %f  size %f size %f mass %f", e->position.x, e->position.y, size.x, size.y, e->mass);
-   print_empty_rectangle(e->position, size.y, size.x, e->color);
+   mvprintw(0,1,"Print Player x %f y %f  size %f size %f mass %f", e->position.x, e->position.y, size.x, size.y, e->mass);
+   Vector position = {center.x-size.x/2,center.y-size.y/2};
+   print_empty_rectangle(position, size.y, size.x, e->color);
 }
 
-void print_entities(struct leaf *entities)
+void print_entities(Vector center,const struct Entity *player,struct leaf *entities)
 {
    struct leaf *tmp = entities;
 
@@ -70,7 +71,10 @@ void print_entities(struct leaf *entities)
    {
       const struct Entity *e = tmp->data;
       Vector size=GetEntitySizes(e);
-      print_empty_rectangle(e->position, size.y, size.x, e->color);
+      // Vector diff 
+      Vector diff = Sub(e->position, player->position);
+      Vector position = Add(center, diff);
+      print_empty_rectangle(position, size.y, size.x, e->color);
       tmp = tmp->next;
    }
 }
@@ -201,6 +205,11 @@ void handle_entities(struct leaf **entities)
    } 
 }
 
+Vector get_center(){
+   float x,y;
+   getmaxyx(stdscr, y, x);
+   return (Vector){x/2, y/2};
+}
 
 int main()
 {
@@ -249,20 +258,20 @@ int main()
 
       handler(ch, &player.position);
 
-      if (move_count++ % 4 == 0)
-         move_entities(entities);
+      /*if (move_count++ % 4 == 0)*/
+         /*move_entities(entities);*/
 
       handle_entities(&entities);
 
       mvprintw(0,0, "Player x %f y %f mass %f", player.position.x, player.position.y, player.mass);
 
       /*print_empty_rectangle(player.position, 1, 1, 1);*/
-      print_player(&player);
-      print_entities(entities);
+      print_player(get_center(),&player);
+      print_entities(get_center(),&player,entities);
 
       refresh();
       clear();
-      napms(50);
+      napms(40);
    }
    
    refresh();
