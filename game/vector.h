@@ -16,5 +16,7 @@ void Move(Vector *v,Vector dir,float speed);
 
 float Module(Vector v);
 
+Vector get_center();
+
  
 #endif

@@ -35,11 +35,23 @@ struct Entity
    int color;
 };
 
+struct Orb
+{
+   Vector position;
+   float mass;
+   int color;
+};
+
 Vector StartEntitySize = {6, 3};
 
 Vector GetEntitySizes(const struct Entity *e)
 {
    return Mul(StartEntitySize, (float)e->mass / 10); //6 3 * 2 = 12 6
+}
+
+Vector GetOrbSizes(const struct Orb *o)
+{
+   return Mul(StartEntitySize, (float)o->mass / 10);
 }
 
 struct Entity *new_entity(const char *name, int x, int y, int mass, int color)
@@ -55,26 +67,53 @@ struct Entity *new_entity(const char *name, int x, int y, int mass, int color)
    return e;
 }
 
-void print_player(Vector center,const struct Entity *e)
+struct Orb *new_orb(int x, int y, int mass, int color)
 {
-   Vector size = GetEntitySizes(e);
+   struct Orb *orb = malloc(sizeof(struct Orb));
+
+   orb->position.x = x;
+   orb->position.y = y;
+   orb->mass = mass;
+   orb->color = color;
+
+   return orb;
+}
+
+void print_player(Vector center, const struct Entity *e)
+{
+   Vector size = GetEntitySizes(e); 
    mvprintw(0,1,"Print Player x %f y %f  size %f size %f mass %f", e->position.x, e->position.y, size.x, size.y, e->mass);
-   Vector position = {center.x-size.x/2,center.y-size.y/2};
+   Vector position = {center.x - size.x / 2, center.y - size.y / 2};
    print_empty_rectangle(position, size.y, size.x, e->color);
 }
 
-void print_entities(Vector center,const struct Entity *player,struct leaf *entities)
+void print_entities(Vector center, const struct Entity *player, struct leaf *entities)
 {
    struct leaf *tmp = entities;
 
    while (tmp != NULL)
    {
       const struct Entity *e = tmp->data;
-      Vector size=GetEntitySizes(e);
+      Vector size = GetEntitySizes(e);
       // Vector diff 
       Vector diff = Sub(e->position, player->position);
       Vector position = Add(center, diff);
       print_empty_rectangle(position, size.y, size.x, e->color);
+      tmp = tmp->next;
+   }
+}
+
+void print_orbs(Vector center, const struct Entity *player, struct leaf *orbs)
+{
+   struct leaf *tmp = orbs;
+
+   while (tmp != NULL)
+   {
+      const struct Orb *orb = tmp->data;
+      Vector size = GetOrbSizes(orb);
+      Vector diff = Sub(orb->position, player->position); 
+      Vector position = Add(center, diff);
+      print_empty_rectangle(position, size.y, size.x, orb->color);
       tmp = tmp->next;
    }
 }
@@ -102,6 +141,17 @@ bool check_entity_collision(const struct Entity *e1, const struct Entity *e2)
    return check_collision(e1->position, size1, e2->position, size2);
 }
 
+bool check_orb_collision(const struct Entity *e, const struct Orb *orb)
+{
+   if (e == NULL || orb == NULL)
+      return false;
+
+   Vector entity_size = GetEntitySizes(e);
+   Vector orb_size = GetOrbSizes(orb);
+
+   return check_collision(e->position, entity_size, orb->position, orb_size);
+}
+
 struct leaf* get_collision(struct leaf *entities, const struct Entity *e)
 {
    struct leaf *tmp = entities;
@@ -115,6 +165,26 @@ struct leaf* get_collision(struct leaf *entities, const struct Entity *e)
       tmp = tmp->next;
    }
    return NULL;
+}
+
+void orb_collision(struct leaf **orbs, struct Entity *player)
+{
+   struct leaf *tmp = *orbs;
+   struct leaf *prev = NULL;
+
+   while (tmp != NULL)
+   {
+      struct Orb *orb = tmp->data;
+      if (check_orb_collision(player, orb))
+      {
+         player->mass += orb->mass * 0.2; 
+         *orbs = remove_leaf_ptr(*orbs, tmp);
+         free(orb);
+         break; 
+      }
+      prev = tmp;
+      tmp = tmp->next;
+   }
 }
 
 int get_random(int from, int to)
@@ -155,6 +225,17 @@ void get_entity(struct leaf **entities, struct Entity player, char *name)
    while (collision);
 
    *entities = preappend_leaf(*entities, new_en);
+}
+
+void generate_orb(struct leaf **orbs)
+{
+   int x = get_random(1, 100);
+   int y = get_random(1, 50);
+   int mass = get_random(4, 12);
+   int color = get_random(2, 4);
+
+   struct Orb *new_orbb= new_orb(x, y, mass, color);
+   *orbs = preappend_leaf(*orbs, new_orbb);
 }
 
 void move_entities(struct leaf *entities)
@@ -205,11 +286,6 @@ void handle_entities(struct leaf **entities)
    } 
 }
 
-Vector get_center(){
-   float x,y;
-   getmaxyx(stdscr, y, x);
-   return (Vector){x/2, y/2};
-}
 
 int main()
 {
@@ -230,6 +306,7 @@ int main()
    int count_entities = 0;
    int move_count = 0;
    struct leaf *entities = NULL;
+   struct leaf *orbs = NULL;
 
    struct Entity player = {"Player", {5, 5}, 20, 1};
 
@@ -248,26 +325,30 @@ int main()
          //entities = preappend_leaf(entities, e);
          //mvprintw(1, 0, "Generated Entity %d", count_entities);
       }
-      else if(ch == 113) //q
+      else if (ch == 113) //q
       {
          if(player.mass > 1)
             player.mass--;
       }
-      else if(ch == 101) //e
+      else if (ch == 101) //e
          player.mass++;
+      else if (ch == 111) //o - create orb
+         generate_orb(&orbs);
 
       handler(ch, &player.position);
 
-      /*if (move_count++ % 4 == 0)*/
-         /*move_entities(entities);*/
+      if (move_count++ % 4 == 0)
+         move_entities(entities);
 
       handle_entities(&entities);
+      orb_collision(&orbs, &player);
 
       mvprintw(0,0, "Player x %f y %f mass %f", player.position.x, player.position.y, player.mass);
 
       /*print_empty_rectangle(player.position, 1, 1, 1);*/
-      print_player(get_center(),&player);
-      print_entities(get_center(),&player,entities);
+      print_player(get_center(), &player);
+      print_entities(get_center(), &player, entities);
+      print_orbs(get_center(), &player, orbs);
 
       refresh();
       clear();
