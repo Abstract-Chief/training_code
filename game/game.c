@@ -8,24 +8,9 @@
 #include "vector.h"
 #include "list.h"
 
+#define COEF 100
 
-void handler(int ch, Vector *v)
-{
-   if (v == NULL)
-      return;
-   Vector direction = {0,0};
-
-   if(ch == KEY_UP)
-      direction.y = -1;
-   else if(ch == KEY_DOWN)
-      direction.y = 1;
-   else if(ch == KEY_LEFT)
-      direction.x = -1;
-   else if(ch == KEY_RIGHT)
-      direction.x = 1;
-
-   Move(v, Normalize(direction), 1);
-}
+int ORB_MASS = 2;
 
 struct Entity
 {
@@ -38,20 +23,41 @@ struct Entity
 struct Orb
 {
    Vector position;
-   float mass;
    int color;
 };
+
+struct Settings
+{
+   float spawn_frequency;
+   int spawn_count;
+   Vector up_left, down_right;
+};
+
+void handler(int ch, struct Entity *entity)
+{
+   float coef = COEF / entity->mass;
+
+   if (entity == NULL)
+      return;
+   Vector direction = {0,0};
+
+   if(ch == KEY_UP)
+      direction.y = -1;
+   else if(ch == KEY_DOWN)
+      direction.y = 1;
+   else if(ch == KEY_LEFT)
+      direction.x = -2;
+   else if(ch == KEY_RIGHT)
+      direction.x = 2;
+
+   Move(&entity->position, direction, coef);
+}
 
 Vector StartEntitySize = {6, 3};
 
 Vector GetEntitySizes(const struct Entity *e)
 {
    return Mul(StartEntitySize, (float)e->mass / 10); //6 3 * 2 = 12 6
-}
-
-Vector GetOrbSizes(const struct Orb *o)
-{
-   return Mul(StartEntitySize, (float)o->mass / 10);
 }
 
 struct Entity *new_entity(const char *name, int x, int y, int mass, int color)
@@ -67,13 +73,12 @@ struct Entity *new_entity(const char *name, int x, int y, int mass, int color)
    return e;
 }
 
-struct Orb *new_orb(int x, int y, int mass, int color)
+struct Orb *new_orb(int x, int y, int color)
 {
    struct Orb *orb = malloc(sizeof(struct Orb));
 
    orb->position.x = x;
    orb->position.y = y;
-   orb->mass = mass;
    orb->color = color;
 
    return orb;
@@ -82,7 +87,6 @@ struct Orb *new_orb(int x, int y, int mass, int color)
 void print_player(Vector center, const struct Entity *e)
 {
    Vector size = GetEntitySizes(e); 
-   mvprintw(0,1,"Print Player x %f y %f  size %f size %f mass %f", e->position.x, e->position.y, size.x, size.y, e->mass);
    Vector position = {center.x - size.x / 2, center.y - size.y / 2};
    print_empty_rectangle(position, size.y, size.x, e->color);
 }
@@ -110,7 +114,7 @@ void print_orbs(Vector center, const struct Entity *player, struct leaf *orbs)
    while (tmp != NULL)
    {
       const struct Orb *orb = tmp->data;
-      Vector size = GetOrbSizes(orb);
+      Vector size = {2,1};
       Vector diff = Sub(orb->position, player->position); 
       Vector position = Add(center, diff);
       print_empty_rectangle(position, size.y, size.x, orb->color);
@@ -147,7 +151,7 @@ bool check_orb_collision(const struct Entity *e, const struct Orb *orb)
       return false;
 
    Vector entity_size = GetEntitySizes(e);
-   Vector orb_size = GetOrbSizes(orb);
+   Vector orb_size = {2,1};
    Vector graphick_pos={e->position.x-entity_size.x/2,e->position.y-(int)(entity_size.y/2)};// 2.5 -> (int) -> 2 
 
    return check_collision(graphick_pos, entity_size, orb->position, orb_size);
@@ -178,7 +182,7 @@ void orb_collision(struct leaf **orbs, struct Entity *player)
       struct Orb *orb = tmp->data;
       if (check_orb_collision(player, orb))
       {
-         player->mass += orb->mass * 0.2; 
+         player->mass += ORB_MASS * 0.2; 
          *orbs = remove_leaf_ptr(*orbs, tmp);
          free(orb);
          break; 
@@ -211,7 +215,6 @@ void get_entity(struct leaf **entities, struct Entity player, char *name)
       new_en = new_entity(name, x, y, mass, color);
       count_tries++;
       
-      mvprintw(0,1, "%d, %d, %d, %d", x, y, mass, color);
       refresh();
 
       if ((check_entity_collision(&player, new_en) == true) || (get_collision(*entities, new_en) != NULL))
@@ -228,14 +231,14 @@ void get_entity(struct leaf **entities, struct Entity player, char *name)
    *entities = preappend_leaf(*entities, new_en);
 }
 
-void generate_orb(struct leaf **orbs)
+void generate_orb(struct leaf **orbs, Vector up_left, Vector down_right)
 {
-   int x = get_random(1, 100);
-   int y = get_random(1, 50);
-   int mass = get_random(4, 12);
+   int x = get_random(up_left.x, down_right.x);
+   int y = get_random(up_left.y, down_right.y);
+
    int color = get_random(2, 4);
 
-   struct Orb *new_orbb= new_orb(x, y, mass, color);
+   struct Orb *new_orbb= new_orb(x, y, color);
    *orbs = preappend_leaf(*orbs, new_orbb);
 }
 
@@ -287,6 +290,14 @@ void handle_entities(struct leaf **entities)
    } 
 }
 
+void spawn_orbs(const struct Settings *settings, struct leaf **orbs)
+{
+   for (int i = 0; i < settings->spawn_count; i++)
+   {
+      generate_orb(orbs, settings->up_left, settings->down_right);
+   }
+}
+
 
 int main()
 {
@@ -309,9 +320,15 @@ int main()
    struct leaf *entities = NULL;
    struct leaf *orbs = NULL;
 
-   struct Entity player = {"Player", {5, 5}, 20, 1};
+   struct Settings settings = 
+   {
+      .spawn_frequency = 2,
+      .spawn_count = 20,
+      .up_left = {-100, -100},
+      .down_right = {100, 100}
+   };
 
-   mvprintw(0, 0, "hello");
+   struct Entity player = {"Player", {5, 5}, 20, 1};
 
    while (1)
    {
@@ -334,17 +351,15 @@ int main()
       else if (ch == 101) //e
          player.mass++;
       else if (ch == 111) //o - create orb
-         generate_orb(&orbs);
+         spawn_orbs(&settings, &orbs);
 
-      handler(ch, &player.position);
+      handler(ch, &player);
 
       if (move_count++ % 4 == 0)
          move_entities(entities);
 
       handle_entities(&entities);
       orb_collision(&orbs, &player);
-
-      mvprintw(0,0, "Player x %f y %f mass %f", player.position.x, player.position.y, player.mass);
 
       /*print_empty_rectangle(player.position, 1, 1, 1);*/
       print_player(get_center(), &player);
@@ -360,3 +375,7 @@ int main()
    getch();
    endwin();
 }
+
+// дз функция которая создает границу мира за которую игрок не может выйти
+
+//задачи на след уроки: сдклать ограничкние на рост, анимации при сьедении орбиза, сьедение игроком других сущностей и игрока сущностями, переделать на фпс игру
