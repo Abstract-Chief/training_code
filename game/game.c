@@ -148,8 +148,9 @@ bool check_orb_collision(const struct Entity *e, const struct Orb *orb)
 
    Vector entity_size = GetEntitySizes(e);
    Vector orb_size = GetOrbSizes(orb);
+   Vector graphick_pos={e->position.x-entity_size.x/2,e->position.y-(int)(entity_size.y/2)};// 2.5 -> (int) -> 2 
 
-   return check_collision(e->position, entity_size, orb->position, orb_size);
+   return check_collision(graphick_pos, entity_size, orb->position, orb_size);
 }
 
 struct leaf* get_collision(struct leaf *entities, const struct Entity *e)
@@ -351,7 +352,7 @@ int main()
       print_orbs(get_center(), &player, orbs);
 
       refresh();
-      clear();
+      erase();
       napms(40);
    }
    
